@@ -5,22 +5,24 @@ from PIL import Image, ImageEnhance
 from skimage.feature import graycomatrix, graycoprops
 import pickle
 
-st.set_page_config(page_title="Klasifikasi Daun Nilam", page_icon="🌿", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Klasifikasi Daun Nilam", page_icon="🌿", layout="wide", initial_sidebar_state="collapsed")
 
-# Inject Custom CSS for Professional Premium UI
+# Inject Custom CSS for Ultra Premium Dark UI
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
     
-    /* Global Font & Background */
+    /* Global Font & Dark Theme Background */
     html, body, [class*="css"] {
-        font-family: 'Outfit', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
     }
     
     .stApp {
-        background-color: #f8fafc;
-        background-image: radial-gradient(circle at top right, #dcfce7 0%, transparent 40%),
-                          radial-gradient(circle at bottom left, #ecfdf5 0%, transparent 40%);
+        background-color: #0b0f19;
+        background-image: 
+            radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08), transparent 25%),
+            radial-gradient(circle at 85% 30%, rgba(5, 150, 105, 0.08), transparent 25%);
+        color: #e2e8f0;
     }
 
     /* Hide Streamlit UI Elements */
@@ -30,73 +32,105 @@ st.markdown("""
 
     /* Beautiful Header Banner */
     .main-header {
-        background: linear-gradient(135deg, #166534 0%, #14532d 100%);
-        padding: 2.5rem 2rem;
-        border-radius: 20px;
-        color: white;
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.7) 100%);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        padding: 3rem 2rem;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
         text-align: center;
-        margin-bottom: 2rem;
-        box-shadow: 0 15px 30px rgba(22, 101, 52, 0.2);
+        margin-bottom: 3rem;
+        margin-top: 1rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
         position: relative;
         overflow: hidden;
     }
     
-    .main-header::before {
+    .main-header::after {
         content: "";
         position: absolute;
-        top: -50%; left: -50%;
-        width: 200%; height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-        transform: rotate(30deg);
-        pointer-events: none;
+        top: 0; left: 0; width: 100%; height: 2px;
+        background: linear-gradient(90deg, transparent, #10b981, transparent);
     }
 
     .main-header h1 {
-        color: white !important;
-        font-weight: 700;
+        font-weight: 800;
         margin: 0;
         padding: 0;
-        font-size: 2.8rem;
-        letter-spacing: -0.5px;
+        font-size: 3.2rem;
+        letter-spacing: -1px;
+        background: -webkit-linear-gradient(45deg, #34d399, #10b981);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
+    
     .main-header p {
-        font-weight: 300;
-        margin-top: 10px;
-        opacity: 0.9;
-        font-size: 1.15rem;
+        color: #94a3b8;
+        font-weight: 400;
+        margin-top: 12px;
+        font-size: 1.2rem;
+        letter-spacing: 0.5px;
     }
     
     /* Result Badge */
     .result-card {
-        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-        color: white;
-        padding: 20px;
-        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.15) 100%);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        padding: 40px 20px;
+        border-radius: 24px;
         text-align: center;
-        box-shadow: 0 10px 25px rgba(34, 197, 94, 0.25);
-        animation: scaleUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        box-shadow: 0 10px 40px rgba(16, 185, 129, 0.15), inset 0 0 20px rgba(16, 185, 129, 0.05);
+        animation: scaleUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         transform: scale(0.9);
         opacity: 0;
+        backdrop-filter: blur(10px);
     }
     
     .result-card h3 {
         margin: 0;
-        font-size: 1rem;
-        font-weight: 400;
-        opacity: 0.9;
-        color: white !important;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #a7f3d0 !important;
+        text-transform: uppercase;
+        letter-spacing: 2px;
     }
     .result-card h2 {
-        margin: 5px 0 0 0;
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: white !important;
+        margin: 10px 0 0 0;
+        font-size: 3rem;
+        font-weight: 800;
+        color: #fff !important;
+        text-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
     }
 
-    /* Subheader Styling */
-    h3 {
-        color: #1e293b !important;
-        font-weight: 600 !important;
+    /* Override standard components */
+    .stFileUploader > div > div {
+        background-color: rgba(30, 41, 59, 0.4) !important;
+        border: 2px dashed rgba(148, 163, 184, 0.2) !important;
+        border-radius: 20px !important;
+        padding: 2rem !important;
+        transition: all 0.3s ease;
+    }
+    .stFileUploader > div > div:hover {
+        border-color: #10b981 !important;
+        background-color: rgba(30, 41, 59, 0.7) !important;
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+    }
+    
+    .stMarkdown h3 {
+        color: #f8fafc !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.5px;
+    }
+
+    /* Metric code block */
+    code {
+        color: #34d399 !important;
+        background: rgba(15, 23, 42, 0.8) !important;
+        padding: 15px !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        display: block;
+        font-size: 0.9rem !important;
     }
 
     @keyframes scaleUp {
@@ -108,8 +142,8 @@ st.markdown("""
 # Render Header
 st.markdown("""
 <div class="main-header">
-    <h1>🌿 Identifikasi Daun Nilam</h1>
-    <p>Sistem Deteksi Varian Berbasis Machine Learning (SVM)</p>
+    <h1><span style="font-size:3rem;">🌿</span> Identifikasi Daun Nilam AI</h1>
+    <p>AgriTech Dashboard &bull; SVM Classification Engine</p>
 </div>
 """, unsafe_allow_html=True)
 def load_models():
@@ -174,37 +208,3 @@ uploaded_file = st.file_uploader("Silakan unggah gambar daun nilam (JPG/PNG)", t
 if uploaded_file is not None:
     col1, col2 = st.columns(2)
     
-    with col1:
-        st.subheader("Gambar yang Diunggah")
-        img_pil = Image.open(uploaded_file).convert('RGB')
-        st.image(img_pil, use_container_width=True)
-        
-    with col2:
-        st.subheader("Hasil Analisis")
-        with st.spinner("Mengekstraksi fitur dan melakukan prediksi..."):
-            try:
-                # Proses Ekstraksi
-                features = extract_features(img_pil)
-                
-                # Transformasi Scaler
-                features_scaled = scaler.transform(features)
-                
-                # Prediksi SVM
-                prediction = model.predict(features_scaled)[0]
-                
-                # Output Premium
-                predicted_class = classes.get(prediction, "Kelas Tidak Dikenal")
-                
-                st.markdown(f"""
-                <div class="result-card">
-                    <h3>Hasil Prediksi</h3>
-                    <h2>{predicted_class}</h2>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                st.write("") # Spacer
-                with st.expander("Tampilkan Metrik Fitur Teknis"):
-                    st.write(f"**Standarisasi Fitur:**\n{features_scaled[0]}")
-                    
-            except Exception as e:
-                st.error(f"Terjadi kesalahan saat memproses gambar: {e}")
