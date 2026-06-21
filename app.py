@@ -5,24 +5,22 @@ from PIL import Image, ImageEnhance
 from skimage.feature import graycomatrix, graycoprops
 import pickle
 
-st.set_page_config(page_title="Klasifikasi Daun Nilam", page_icon="🌿", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Klasifikasi Daun Nilam", layout="wide", initial_sidebar_state="collapsed")
 
-# Inject Custom CSS for Ultra Premium Dark UI
+# Inject Custom CSS for Clean Enterprise UI
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
-    /* Global Font & Dark Theme Background */
+    /* Global Font & Clean Light Theme */
     html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: 'Inter', sans-serif;
+        background-color: #fafafa;
+        color: #171717;
     }
     
     .stApp {
-        background-color: #0b0f19;
-        background-image: 
-            radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08), transparent 25%),
-            radial-gradient(circle at 85% 30%, rgba(5, 150, 105, 0.08), transparent 25%);
-        color: #e2e8f0;
+        background-color: #fafafa;
     }
 
     /* Hide Streamlit UI Elements */
@@ -30,111 +28,104 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* Beautiful Header Banner */
+    /* Minimalist Header Banner */
     .main-header {
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.7) 100%);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background-color: #ffffff;
         padding: 3rem 2rem;
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        border: 1px solid #e5e5e5;
         text-align: center;
-        margin-bottom: 3rem;
+        margin-bottom: 2.5rem;
         margin-top: 1rem;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .main-header::after {
-        content: "";
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 2px;
-        background: linear-gradient(90deg, transparent, #10b981, transparent);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
     }
 
     .main-header h1 {
-        font-weight: 800;
+        font-weight: 700;
         margin: 0;
         padding: 0;
-        font-size: 3.2rem;
-        letter-spacing: -1px;
-        background: -webkit-linear-gradient(45deg, #34d399, #10b981);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        font-size: 2.5rem;
+        color: #171717;
+        letter-spacing: -0.5px;
     }
     
     .main-header p {
-        color: #94a3b8;
+        color: #525252;
         font-weight: 400;
-        margin-top: 12px;
-        font-size: 1.2rem;
-        letter-spacing: 0.5px;
+        margin-top: 8px;
+        font-size: 1.1rem;
     }
     
     /* Result Badge */
     .result-card {
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.15) 100%);
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        padding: 40px 20px;
-        border-radius: 24px;
+        background-color: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        padding: 30px 20px;
+        border-radius: 12px;
         text-align: center;
-        box-shadow: 0 10px 40px rgba(16, 185, 129, 0.15), inset 0 0 20px rgba(16, 185, 129, 0.05);
-        animation: scaleUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        transform: scale(0.9);
-        opacity: 0;
-        backdrop-filter: blur(10px);
+        box-shadow: 0 2px 4px rgba(22, 163, 74, 0.05);
+        animation: fadeIn 0.4s ease-out forwards;
     }
     
     .result-card h3 {
         margin: 0;
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         font-weight: 600;
-        color: #a7f3d0 !important;
+        color: #166534 !important;
         text-transform: uppercase;
-        letter-spacing: 2px;
+        letter-spacing: 1px;
     }
     .result-card h2 {
-        margin: 10px 0 0 0;
-        font-size: 3rem;
-        font-weight: 800;
-        color: #fff !important;
-        text-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        margin: 8px 0 0 0;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #15803d !important;
     }
 
     /* Override standard components */
     .stFileUploader > div > div {
-        background-color: rgba(30, 41, 59, 0.4) !important;
-        border: 2px dashed rgba(148, 163, 184, 0.2) !important;
-        border-radius: 20px !important;
+        background-color: #ffffff !important;
+        border: 1px dashed #d4d4d8 !important;
+        border-radius: 8px !important;
         padding: 2rem !important;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
     }
     .stFileUploader > div > div:hover {
-        border-color: #10b981 !important;
-        background-color: rgba(30, 41, 59, 0.7) !important;
-        box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+        border-color: #16a34a !important;
+        background-color: #f8fafc !important;
     }
     
     .stMarkdown h3 {
-        color: #f8fafc !important;
-        font-weight: 700 !important;
-        letter-spacing: -0.5px;
+        color: #171717 !important;
+        font-weight: 600 !important;
+        letter-spacing: -0.3px;
+        border-bottom: 1px solid #e5e5e5;
+        padding-bottom: 8px;
+        margin-bottom: 16px;
     }
 
     /* Metric code block */
     code {
-        color: #34d399 !important;
-        background: rgba(15, 23, 42, 0.8) !important;
-        padding: 15px !important;
-        border-radius: 12px !important;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        color: #0f172a !important;
+        background: #f1f5f9 !important;
+        padding: 12px !important;
+        border-radius: 6px !important;
+        border: 1px solid #e2e8f0;
         display: block;
-        font-size: 0.9rem !important;
+        font-size: 0.85rem !important;
     }
 
-    @keyframes scaleUp {
-        to { transform: scale(1); opacity: 1; }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2rem;
+    }
+    .stTabs [data-baseweb="tab"] {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -142,8 +133,8 @@ st.markdown("""
 # Render Header
 st.markdown("""
 <div class="main-header">
-    <h1><span style="font-size:3rem;">🌿</span> Identifikasi Daun Nilam AI</h1>
-    <p>AgriTech Dashboard &bull; SVM Classification Engine</p>
+    <h1>Sistem Identifikasi Varian Daun Nilam</h1>
+    <p>Model Klasifikasi Support Vector Machine</p>
 </div>
 """, unsafe_allow_html=True)
 def load_models():
@@ -212,7 +203,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-tab1, tab2, tab3 = st.tabs(["🚀 Prediksi", "📊 Analisis Fitur", "🤖 Info Model"])
+tab1, tab2, tab3 = st.tabs(["Prediksi", "Analisis Fitur", "Info Model"])
 
 with tab1:
     uploaded_file = st.file_uploader("Silakan unggah gambar daun nilam (JPG/PNG)", type=["jpg", "jpeg", "png"])
@@ -221,12 +212,12 @@ with tab1:
         col1, col2 = st.columns([1, 1.2])
         
         with col1:
-            st.markdown('<h3>🖼️ Citra Uji Masukan</h3>', unsafe_allow_html=True)
+            st.markdown('<h3>Citra Uji Masukan</h3>', unsafe_allow_html=True)
             img_pil = Image.open(uploaded_file).convert('RGB')
             st.image(img_pil, use_container_width=True)
             
         with col2:
-            st.markdown('<h3>📊 Hasil Analisis AI</h3>', unsafe_allow_html=True)
+            st.markdown('<h3>Hasil Analisis AI</h3>', unsafe_allow_html=True)
             with st.spinner("Mengekstraksi fitur dan melakukan prediksi..."):
                 try:
                     # Proses Ekstraksi
@@ -251,12 +242,12 @@ with tab1:
                     <div class="result-card">
                         <h3>Hasil Prediksi</h3>
                         <h2>{predicted_class}</h2>
-                        <p style="margin-top:10px; color:#a7f3d0; font-size:1.1rem;">Tingkat Kepercayaan: <b>{confidence:.2f}%</b></p>
+                        <p style="margin-top:10px; color:#15803d; font-size:1.1rem; font-weight:600;">Tingkat Kepercayaan: {confidence:.2f}%</p>
                     </div>
                     """, unsafe_allow_html=True)
                     
                     st.write(" ")
-                    st.markdown('<h3>📈 Detail Probabilitas Kelas</h3>', unsafe_allow_html=True)
+                    st.markdown('<h3>Detail Probabilitas Kelas</h3>', unsafe_allow_html=True)
                     if hasattr(model, 'predict_proba'):
                         for idx, cls_name in classes.items():
                             st.write(f"{cls_name} ({probs[idx]*100:.1f}%)")
@@ -270,7 +261,7 @@ with tab1:
                     st.error(f"Terjadi kesalahan saat memproses gambar: {e}")
 
 with tab2:
-    st.markdown('<h3>🔍 Visualisasi Nilai Ekstraksi Fitur</h3>', unsafe_allow_html=True)
+    st.markdown('<h3>Visualisasi Nilai Ekstraksi Fitur</h3>', unsafe_allow_html=True)
     if 'features_raw' in st.session_state:
         feature_names = ['Contrast', 'Homogeneity', 'Energy', 'Correlation', 'Dissimilarity', 'ASM', 
                          'H Mean', 'H Std', 'S Mean', 'S Std', 'V Mean', 'V Std']
@@ -292,17 +283,17 @@ with tab2:
         st.info("Silakan unggah gambar di tab 'Prediksi' terlebih dahulu untuk melihat analisis fitur.")
 
 with tab3:
-    st.markdown('<h3>🤖 Tentang Model AI</h3>', unsafe_allow_html=True)
+    st.markdown('<h3>Tentang Model</h3>', unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     c1.metric(label="Algoritma", value="Support Vector Machine")
     c2.metric(label="Akurasi Validasi", value="95.0%")
     c3.metric(label="Jumlah Fitur", value="12 Fitur Kombinasi")
     
     st.markdown("""
-    **Pipeline Ekstraksi:**
-    1. **Isolasi Daun:** Algoritma memisahkan latar belakang kertas putih dari daun untuk ekstraksi warna murni.
-    2. **Normalisasi Kecerahan:** Mengkalibrasi ulang cahaya agar citra terlalu gelap/terang tidak mengganggu model.
-    3. **HSV (Warna):** Menghitung nilai *Mean* (Rata-rata) dan *Standar Deviasi* dari *Hue*, *Saturation*, *Value*.
-    4. **GLCM (Tekstur):** Memindai pola mikro tekstur daun di 4 sudut arah (`0°, 45°, 90°, 135°`) untuk mencari nilai Kekontrasan, Energi, hingga Korelasi piksel.
-    5. **Klasifikasi:** 12 angka tersebut diselaraskan (*StandardScaler*) lalu ditebak oleh *Support Vector Machine (SVM)* ber-kernel RBF.
+    **Pipeline Ekstraksi Data:**
+    1. **Isolasi Objek:** Memisahkan latar belakang dari daun untuk ekstraksi warna murni.
+    2. **Normalisasi Kecerahan:** Mengkalibrasi ulang cahaya agar citra terstandarisasi.
+    3. **Ekstraksi HSV:** Menghitung nilai rata-rata (*Mean*) dan standar deviasi dari saluran *Hue*, *Saturation*, *Value*.
+    4. **Ekstraksi GLCM:** Memindai pola tekstur daun di 4 sudut arah (0°, 45°, 90°, 135°) untuk mencari nilai *Contrast, Homogeneity, Energy, Correlation, Dissimilarity, ASM*.
+    5. **Klasifikasi:** 12 atribut diselaraskan menggunakan *StandardScaler* dan diprediksi dengan model SVM ber-kernel RBF.
     """)
