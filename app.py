@@ -203,8 +203,106 @@ def extract_features(img_pil):
     combined_features = texture_features + color_features
     return np.array(combined_features).reshape(1, -1)
 
-uploaded_file = st.file_uploader("Silakan unggah gambar daun nilam (JPG/PNG)", type=["jpg", "jpeg", "png"])
+# Tambahan CSS untuk Progress Bar
+st.markdown("""
+<style>
+    .stProgress > div > div > div > div {
+        background-color: #10b981;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-if uploaded_file is not None:
-    col1, col2 = st.columns(2)
+tab1, tab2, tab3 = st.tabs(["🚀 Prediksi", "📊 Analisis Fitur", "🤖 Info Model"])
+
+with tab1:
+    uploaded_file = st.file_uploader("Silakan unggah gambar daun nilam (JPG/PNG)", type=["jpg", "jpeg", "png"])
+
+    if uploaded_file is not None:
+        col1, col2 = st.columns([1, 1.2])
+        
+        with col1:
+            st.markdown('<h3>🖼️ Citra Uji Masukan</h3>', unsafe_allow_html=True)
+            img_pil = Image.open(uploaded_file).convert('RGB')
+            st.image(img_pil, use_container_width=True)
+            
+        with col2:
+            st.markdown('<h3>📊 Hasil Analisis AI</h3>', unsafe_allow_html=True)
+            with st.spinner("Mengekstraksi fitur dan melakukan prediksi..."):
+                try:
+                    # Proses Ekstraksi
+                    features = extract_features(img_pil)
+                    
+                    # Transformasi Scaler
+                    features_scaled = scaler.transform(features)
+                    
+                    # Prediksi SVM
+                    prediction = model.predict(features_scaled)[0]
+                    predicted_class = classes.get(prediction, "Kelas Tidak Dikenal")
+                    
+                    # Probabilitas (Confidence)
+                    if hasattr(model, 'predict_proba'):
+                        probs = model.predict_proba(features_scaled)[0]
+                        confidence = np.max(probs) * 100
+                    else:
+                        confidence = 0.0
+                    
+                    # Output Premium
+                    st.markdown(f"""
+                    <div class="result-card">
+                        <h3>Hasil Prediksi</h3>
+                        <h2>{predicted_class}</h2>
+                        <p style="margin-top:10px; color:#a7f3d0; font-size:1.1rem;">Tingkat Kepercayaan: <b>{confidence:.2f}%</b></p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.write(" ")
+                    st.markdown('<h3>📈 Detail Probabilitas Kelas</h3>', unsafe_allow_html=True)
+                    if hasattr(model, 'predict_proba'):
+                        for idx, cls_name in classes.items():
+                            st.write(f"{cls_name} ({probs[idx]*100:.1f}%)")
+                            st.progress(float(probs[idx]))
+                        
+                    # Simpan fitur ke session state untuk Tab 2
+                    st.session_state['features_raw'] = features[0]
+                    st.session_state['features_scaled'] = features_scaled[0]
+                        
+                except Exception as e:
+                    st.error(f"Terjadi kesalahan saat memproses gambar: {e}")
+
+with tab2:
+    st.markdown('<h3>🔍 Visualisasi Nilai Ekstraksi Fitur</h3>', unsafe_allow_html=True)
+    if 'features_raw' in st.session_state:
+        feature_names = ['Contrast', 'Homogeneity', 'Energy', 'Correlation', 'Dissimilarity', 'ASM', 
+                         'H Mean', 'H Std', 'S Mean', 'S Std', 'V Mean', 'V Std']
+        
+        col_t1, col_t2 = st.columns(2)
+        with col_t1:
+            st.write("**Nilai Fitur Tekstur (GLCM)**")
+            tex_dict = dict(zip(feature_names[:6], st.session_state['features_raw'][:6]))
+            st.bar_chart(tex_dict, height=250)
+            
+        with col_t2:
+            st.write("**Nilai Fitur Warna (HSV)**")
+            col_dict = dict(zip(feature_names[6:], st.session_state['features_raw'][6:]))
+            st.bar_chart(col_dict, height=250)
+            
+        st.write("**Vektor Standardisasi (Input SVM):**")
+        st.code(st.session_state['features_scaled'])
+    else:
+        st.info("Silakan unggah gambar di tab 'Prediksi' terlebih dahulu untuk melihat analisis fitur.")
+
+with tab3:
+    st.markdown('<h3>🤖 Tentang Model AI</h3>', unsafe_allow_html=True)
+    c1, c2, c3 = st.columns(3)
+    c1.metric(label="Algoritma", value="Support Vector Machine")
+    c2.metric(label="Akurasi Validasi", value="95.0%")
+    c3.metric(label="Jumlah Fitur", value="12 Fitur Kombinasi")
     
+    st.markdown("""
+    **Pipeline Ekstraksi:**
+    1. **Isolasi Daun:** Algoritma memisahkan latar belakang kertas putih dari daun untuk ekstraksi warna murni.
+    2. **Normalisasi Kecerahan:** Mengkalibrasi ulang cahaya agar citra terlalu gelap/terang tidak mengganggu model.
+    3. **HSV (Warna):** Menghitung nilai *Mean* (Rata-rata) dan *Standar Deviasi* dari *Hue*, *Saturation*, *Value*.
+    4. **GLCM (Tekstur):** Memindai pola mikro tekstur daun di 4 sudut arah (`0°, 45°, 90°, 135°`) untuk mencari nilai Kekontrasan, Energi, hingga Korelasi piksel.
+    5. **Klasifikasi:** 12 angka tersebut diselaraskan (*StandardScaler*) lalu ditebak oleh *Support Vector Machine (SVM)* ber-kernel RBF.
+    """)
